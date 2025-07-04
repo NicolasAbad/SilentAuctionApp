@@ -45,13 +45,16 @@ const items = [
 
 export default function HomeScreen({ navigation }) {
   const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      <Image source={item.image} style={styles.cardImage} />
-      <Text style={styles.cardTitle}>{item.title}</Text>
-      <Text style={styles.cardText}>Current bid <Text style={styles.cardBold}>{item.bid}</Text></Text>
-      <Text style={styles.cardText}>Time left {item.time}</Text>
-    </View>
-  );
+  <TouchableOpacity
+    style={styles.card}
+    onPress={() => navigation.navigate('ItemDetail', { item })}
+  >
+    <Image source={item.image} style={styles.cardImage} />
+    <Text style={styles.cardTitle}>{item.title}</Text>
+    <Text style={styles.cardText}>Current bid <Text style={styles.cardBold}>{item.bid}</Text></Text>
+    <Text style={styles.cardText}>Time left {item.time}</Text>
+  </TouchableOpacity>
+); 
 
   return (
 
@@ -139,7 +142,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 120,
     borderRadius: 10,
-    resizeMode: 'cover',
+    resizeMode: 'contain',
   },
   cardTitle: {
     fontWeight: 'bold',

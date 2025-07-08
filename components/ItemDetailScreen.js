@@ -1,6 +1,6 @@
 
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -16,9 +16,29 @@ import TopBar from './TopBar';
 import BottomNavBar from './BottomNavBar';
 
 export default function ItemDetailScreen({ route, navigation }) {
+
+
+  const [timeLeft, setTimeLeft] = useState('');
   const [bidAmount, setBidAmount] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const { item } = route.params;
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const remaining = Math.max(0, Math.floor((item.endTime - now) / 1000));
+      setTimeLeft(formatTime(remaining));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatTime = (seconds) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${h > 0 ? `${h}h ` : ''}${m}m ${s}s`;
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
@@ -49,8 +69,8 @@ export default function ItemDetailScreen({ route, navigation }) {
               <Text style={styles.value}>{item.bid}</Text>
             </View>
             <View>
-              <Text style={styles.label}>Time left</Text>
-              <Text style={styles.value}>{item.time}</Text>
+                <Text style={styles.label}>Time left</Text>
+                <Text style={styles.value}>{timeLeft}</Text>
             </View>
           </View>
 

@@ -1,6 +1,7 @@
 
 import BottomNavBar from './BottomNavBar.js'; 
 import TopBar from './TopBar';
+import { useEffect, useState } from 'react';
 
 import {
   View,
@@ -12,47 +13,137 @@ import {
   StyleSheet,
 } from 'react-native';
 
-const items = [
+const rawItems = [
   {
     id: '1',
     title: 'Vintage Camera',
-    bid: '$200',
-    time: '3h',
+    description: 'Classic 35mm film camera in excellent condition.',
+    isActive: true,
+    startTime: Date.now(),
+    duration: '3h',
+    endTime: Date.now() + 3 * 60 * 60 * 1000,
+    bidHistory: [
+      { userId: 'u1', amount: 210, timestamp: Date.now() - 600000 },
+      { userId: 'u2', amount: 220, timestamp: Date.now() - 300000 },
+    ],
+    currentBid: 220,
     image: require('../assets/icon.jpg'),
+    tags: ['electronics', 'camera', 'vintage'],
   },
   {
     id: '2',
     title: 'Leather Bag',
-    bid: '$120',
-    time: '1h',
+    description: 'Premium leather handbag with elegant design.',
+    isActive: true,
+    startTime: Date.now(),
+    duration: '1h',
+    endTime: Date.now() + 60 * 60 * 1000,
+    bidHistory: [
+      { userId: 'u3', amount: 100, timestamp: Date.now() - 400000 },
+      { userId: 'u4', amount: 120, timestamp: Date.now() - 200000 },
+    ],
+    currentBid: 120,
     image: require('../assets/icon.jpg'),
+    tags: ['fashion', 'accessories', 'leather'],
   },
   {
     id: '3',
     title: 'Modern Clock',
-    bid: '$75',
-    time: '45m',
+    description: 'Minimalist wall clock with silent mechanism.',
+    isActive: true,
+    startTime: Date.now(),
+    duration: '45m',
+    endTime: Date.now() + 45 * 60 * 1000,
+    bidHistory: [
+      { userId: 'u5', amount: 75, timestamp: Date.now() - 180000 },
+    ],
+    currentBid: 75,
     image: require('../assets/icon.jpg'),
+    tags: ['home', 'decor', 'clock'],
   },
   {
     id: '4',
     title: 'Wireless Headphones',
-    bid: '$150',
-    time: '2h 10m',
+    description: 'Noise-cancelling Bluetooth headphones with long battery life.',
+    isActive: true,
+    startTime: Date.now(),
+    duration: '2h 10m',
+    endTime: Date.now() + (2 * 60 + 10) * 60 * 1000,
+    bidHistory: [
+      { userId: 'u6', amount: 150, timestamp: Date.now() - 900000 },
+    ],
+    currentBid: 150,
     image: require('../assets/icon.jpg'),
+    tags: ['electronics', 'audio', 'wireless'],
   },
 ];
 
+
 export default function HomeScreen({ navigation }) {
+
+  const [items, setItems] = useState([]);
+  const [timeLeftMap, setTimeLeftMap] = useState({});
+
+//this is the time formater
+function formatTimeLeft(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return `${h > 0 ? `${h}h ` : ''}${m}m ${s}s`;
+
+}
+
+useEffect(() => {
+    const initialized = rawItems.map(item => ({
+      ...item,
+      endTime: parseDuration(item.duration),
+    }));
+    setItems(initialized);
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const updated = {};
+      items.forEach(item => {
+        const secondsLeft = Math.max(0, Math.floor((item.endTime - now) / 1000));
+        updated[item.id] = formatTimeLeft(secondsLeft);
+      });
+      setTimeLeftMap(updated);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [items]);
+
+
+function parseDuration(duration = '') {
+  const regex = /(?:(\d+)h)?\s*(?:(\d+)m)?/;
+  const match = duration.match(regex);
+
+  const hours = match[1] ? parseInt(match[1]) : 0;
+  const minutes = match[2] ? parseInt(match[2]) : 0;
+
+  return Date.now() + (hours * 60 + minutes) * 60 * 1000;
+}
+
+
   const renderItem = ({ item }) => (
   <TouchableOpacity
     style={styles.card}
-    onPress={() => navigation.navigate('ItemDetail', { item })}
+    onPress={() =>
+  navigation.navigate('ItemDetail', {
+    item: {
+      ...item,
+      endTime: item.endTime, 
+    },
+  })
+}
   >
     <Image source={item.image} style={styles.cardImage} />
     <Text style={styles.cardTitle}>{item.title}</Text>
     <Text style={styles.cardText}>Current bid <Text style={styles.cardBold}>{item.bid}</Text></Text>
-    <Text style={styles.cardText}>Time left {item.time}</Text>
+    <Text style={styles.cardText}>
+  Time left {timeLeftMap[item.id] || '--:--'}
+    </Text>
   </TouchableOpacity>
 ); 
 
@@ -70,9 +161,17 @@ export default function HomeScreen({ navigation }) {
         <TouchableOpacity style={styles.filterButton}>
           <Text style={styles.filterText}>Filter</Text>
         </TouchableOpacity>
+
+        
       </View>
 
-      
+      {/* Test Button */}
+      <TouchableOpacity 
+        style={styles.testButton}
+        onPress={() => navigation.navigate('CreateAuction')}
+      >
+        <Text style={styles.testButtonText}>Go to create test page</Text>
+      </TouchableOpacity>
       <FlatList
         data={items}
         keyExtractor={(item) => item.id}
@@ -81,6 +180,8 @@ export default function HomeScreen({ navigation }) {
         contentContainerStyle={{ paddingBottom: 100 }}
         renderItem={renderItem}
       />
+
+      
 
       {/* Bottom Nav */}
       <BottomNavBar navigation={navigation} />
@@ -157,4 +258,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#000',
   },
+
+  //temporary
+  testButton: {
+  backgroundColor: '#1E88E5',
+  padding: 12,
+  borderRadius: 10,
+  marginTop: 20,
+  alignItems: 'center',
+},
+
+testButtonText: {
+  color: '#fff',
+  fontWeight: 'bold',
+  fontSize: 16,
+},
 });

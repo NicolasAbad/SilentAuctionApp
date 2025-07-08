@@ -6,6 +6,7 @@ import HomeScreen from '../components/HomeScreen';
 import MyBidsScreen from '../components/MyBidsScreen';
 import AccountScreen from '../components/AccountScreen';
 import ItemDetailScreen from '../components/ItemDetailScreen';
+import AdminCreateAuction from '../components/AdminCreateAuction';
 
 const Stack = createNativeStackNavigator();
 
@@ -18,6 +19,7 @@ export default function StackNavigator() {
       <Stack.Screen name="MyBids" component={MyBidsScreen} />
       <Stack.Screen name="Account" component={AccountScreen} />
       <Stack.Screen name="ItemDetail" component={ItemDetailScreen} />
+      <Stack.Screen name="CreateAuction" component={AdminCreateAuction} />
     </Stack.Navigator>
   );
 }

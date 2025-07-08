@@ -27,6 +27,9 @@ SilentBid is a minimalist mobile-first auction app built with **React Native**. 
 **🧪 Local Setup**
 
 git clone https://github.com/NicolasAbad/SilentAuctionApp.git
+
 cd SilentAuctionApp
+
 npm install
+
 npx expo start

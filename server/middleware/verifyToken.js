@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken'); 
 const admin = require('../config/firebase'); 
 const verifyToken = async (req, res, next) => {
-    // req.user = {uid: 'mockUserId', email: 'user@example.com'};
+   
     try {
         const authHeader = req.headers.authorization;
 

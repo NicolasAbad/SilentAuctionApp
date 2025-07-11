@@ -1,5 +1,6 @@
 import{ useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { auth } from '../src/firebaseconfig';
 
 export default function SignupScreen({ navigation }) {
   const [name, setName] = useState('');
@@ -9,19 +10,17 @@ export default function SignupScreen({ navigation }) {
 
 
   const handleSignup = async () => {
+    if(!email || !password || !name || !password || !confirmPassword) {
+      alert('Please fill all your fields!');
+      return;
+    }
     try {
-      //TODO: Validate all fields (not empty, email format, password match, etc.)
-
-      //TODO: Call Firebase Auth createUserWithEmailAndPassword here
-      // await firebase.auth().createUserWithEmailAndPassword(email, password);
-
-      //TODO: Optionally save additional user data (name) in Firestore
-
-      // On success, navigate to Login or Home
+      await createUserWithEmailAndPassword(auth, email, password);
       navigation.navigate('Login');
     } catch (error) {
       // TODO: Handle signup errors (email already in use, weak password, etc.)
       console.error('Signup error:', error.message);
+      alert(error.message);
     }
   };
 

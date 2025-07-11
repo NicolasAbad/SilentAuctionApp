@@ -8,6 +8,10 @@ import {
   StyleSheet,
 } from 'react-native';
 
+import { auth } from '../src/firebaseConfig';
+
+import  {createUserWithEmailAndPassword} from 'firebase/auth';
+
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

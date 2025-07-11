@@ -1,5 +1,7 @@
-import{ useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, Alert } from 'react-native';
+import { createUserWithEmailAndPassword, updateProfile, getAuth } from 'firebase/auth';
+import { auth } from '../firebase/config'; // ✅ Adjust if your config is in a different path
 
 export default function SignupScreen({ navigation }) {
   const [name, setName] = useState('');
@@ -7,29 +9,34 @@ export default function SignupScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-
   const handleSignup = async () => {
+    if (!name || !email || !password || !confirmPassword) {
+      alert('Please fill in all fields');
+      return;
+    }
+  
+    if (password !== confirmPassword) {
+      alert('Passwords do not match');
+      return;
+    }
+  
     try {
-      //TODO: Validate all fields (not empty, email format, password match, etc.)
-
-      //TODO: Call Firebase Auth createUserWithEmailAndPassword here
-      // await firebase.auth().createUserWithEmailAndPassword(email, password);
-
-      //TODO: Optionally save additional user data (name) in Firestore
-
-      // On success, navigate to Login or Home
-      navigation.navigate('Login');
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+  
+      console.log('User created:', user.email);
+      alert('Account created successfully!');
+      navigation.navigate('Login'); // Or 'Home' depending on flow
     } catch (error) {
-      // TODO: Handle signup errors (email already in use, weak password, etc.)
-      console.error('Signup error:', error.message);
+      console.error('Signup error:', error.code, error.message);
+      alert('Signup failed: ' + error.message);
     }
   };
-
 
   return (
     <View style={styles.container}>
       <Image
-        source={{ uri: 'https://img.icons8.com/ios-filled/100/gavel.png' }}
+        source={require('../assets/icon.jpg')}
         style={styles.icon}
       />
 
@@ -37,7 +44,7 @@ export default function SignupScreen({ navigation }) {
       <Text style={styles.title}>Sign Up</Text>
 
       <TextInput placeholder="Name" style={styles.input} value={name} onChangeText={setName} />
-      <TextInput placeholder="Email" style={styles.input} value={email} onChangeText={setEmail} />
+      <TextInput placeholder="Email" style={styles.input} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
       <TextInput placeholder="Password" style={styles.input} secureTextEntry value={password} onChangeText={setPassword} />
       <TextInput placeholder="Confirm Password" style={styles.input} secureTextEntry value={confirmPassword} onChangeText={setConfirmPassword} />
 

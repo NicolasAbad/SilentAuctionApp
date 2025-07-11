@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import {
   View,
   Text,
@@ -7,31 +8,40 @@ import {
   Image,
   StyleSheet,
 } from 'react-native';
+import { auth } from '../firebase/config'; // ✅ Ensure this points to your config
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-   const handleLogin = async () => {
+  const handleLogin = async () => {
+    if (!email || !password) {
+      alert('Please enter both email and password');
+      return;
+    }
+  
     try {
-      // TODO: Validate fields (e.g., check if email or password is empty)
-
-      // TODO: Call Firebase Auth signInWithEmailAndPassword here
-      // Example: await firebase.auth().signInWithEmailAndPassword(email, password);
-
-      // On success, navigate to the Home screen
-      navigation.navigate('Home');
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const token = await userCredential.user.getIdToken(); // ✅ Token to send to backend
+  
+      // You can store it with async storage if needed
+      // await AsyncStorage.setItem('token', token);
+  
+      if (email === 'admin@gmail.com') {
+        navigation.navigate('AdminDashboard', { email, token });
+      } else {
+        navigation.navigate('Home', { email, token });
+      }
+  
     } catch (error) {
-      // TODO: Handle login errors (wrong credentials, user not found, etc.)
       console.error('Login error:', error.message);
+      alert('Login failed: ' + error.message);
     }
   };
 
   return (
     <View style={styles.container}>
-      
       <Image source={require('../assets/icon.jpg')} style={styles.icon} />
-
       <Text style={styles.title}>Log in</Text>
 
       <TextInput
@@ -40,6 +50,7 @@ export default function LoginScreen({ navigation }) {
         onChangeText={setEmail}
         style={styles.input}
         keyboardType="email-address"
+        autoCapitalize="none"
       />
 
       <TextInput
@@ -50,12 +61,10 @@ export default function LoginScreen({ navigation }) {
         style={styles.input}
       />
 
-      
       <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
         <Text style={styles.loginText}>Log in</Text>
       </TouchableOpacity>
 
-     
       <TouchableOpacity>
         <Text style={styles.forgot}>Forgot password?</Text>
       </TouchableOpacity>

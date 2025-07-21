@@ -4,7 +4,7 @@ import { initializeApp } from 'firebase/app';
 import {
   initializeAuth,
   getReactNativePersistence,
-  getAuth,
+  getAuth, getIdToken, signInWithEmailAndPassword
 } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -29,4 +29,4 @@ try {
   auth = getAuth(app);
 }
 
-export { auth };
+export { auth,signInWithEmailAndPassword, getIdToken }; // Export auth and other functions as needed

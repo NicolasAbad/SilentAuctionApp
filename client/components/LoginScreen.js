@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, getIdToken } from 'firebase/auth';
 import {
   View,
   Text,
@@ -9,6 +9,9 @@ import {
   StyleSheet,
 } from 'react-native';
 import { auth } from '../firebase/config'; // ✅ Ensure this points to your config
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
@@ -22,10 +25,34 @@ export default function LoginScreen({ navigation }) {
   
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const token = await userCredential.user.getIdToken(); // ✅ Token to send to backend
+      const token = await getIdToken(userCredential.user);// ✅ Token to send to backend
   
       // You can store it with async storage if needed
-      // await AsyncStorage.setItem('token', token);
+      await AsyncStorage.setItem('token', token);
+
+// ✅ Call protected API with Bearer token
+      const endpoint =
+        email === 'admin@gmail.com'
+          ? 'http://localhost:5000/api/admin/dashboard'
+          : 'http://localhost:5000/api/dashboard';
+
+   
+      console.log('Endpoint:', endpoint);
+
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch dashboard data');
+      }
+
+
   
       if (email === 'admin@gmail.com') {
         navigation.navigate('AdminDashboard', { email, token });

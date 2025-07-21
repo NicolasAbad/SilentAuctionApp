@@ -24,8 +24,14 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "permissions": ["CAMERA", "MEDIA_LIBRARY"],
-      "edgeToEdgeEnabled": true
+      "permissions": [
+        "CAMERA",
+        "MEDIA_LIBRARY",
+        "CAMERA",
+        "MEDIA_LIBRARY"
+      ],
+      "edgeToEdgeEnabled": true,
+      "package": "com.anonymous.SilentApp"
     },
     "web": {
       "favicon": "./assets/favicon.png"

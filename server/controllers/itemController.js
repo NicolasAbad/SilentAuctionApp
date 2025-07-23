@@ -1,4 +1,5 @@
 const Item = require('../models/Item');
+const Bid = require('../models/Bid');
 
 exports.createItem = async (req, res)=>{
     try{
@@ -10,7 +11,7 @@ exports.createItem = async (req, res)=>{
             imageUrls,
             startingBid, 
             currentBid: startingBid,
-            ownerId : req.user.uId,  // this will come from verifyToken middleware (that's firebase UID)
+            ownerId : req.user.uid,  // this will come from verifyToken middleware (that's firebase UID)
             category, 
             endTime
         });
@@ -36,7 +37,7 @@ exports.getAllItems = async (req, res) =>{
 
 exports.getItemById = async (req, res) =>{
     try{
-        const item = await Item.findById(req.param.id);
+        const item = await Item.findById(req.params.id);
         if(!item){
             return res.status(404).json({message: "Item not found"});
         }
@@ -46,4 +47,29 @@ exports.getItemById = async (req, res) =>{
         console.error(err);
         res.status(500).json({message: 'Failed to fetch item'});
     }
+};
+
+
+exports.getItemWithBidHistory = async (req, res) => {
+  try {
+    const itemId = req.params.itemId;
+
+    const item = await Item.findById(itemId).lean();
+    if (!item) return res.status(404).json({ message: 'Item not found' });
+
+    const bids = await Bid.find({ item: itemId })
+      .sort({ amount: -1 })
+      .lean();
+
+    const highestBid = bids.length > 0 ? bids[0] : null;
+
+    res.status(200).json({
+      item,
+      bids,
+      highestBid
+    });
+  } catch (err) {
+    console.error('Error fetching item with bid history:', err);
+    res.status(500).json({ message: 'Failed to fetch item with bids' });
+  }
 };

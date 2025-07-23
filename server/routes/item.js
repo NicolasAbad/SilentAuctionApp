@@ -17,4 +17,6 @@ router.get('/', itemController.getAllItems);
 //getting specific item by Id (public)
 router.get('/:id', itemController.getItemById);
 
+router.get('/:itemId/details-with-bids', itemController.getItemWithBidHistory);
+
 module.exports = router;

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { getAuth, signInWithEmailAndPassword, getIdToken } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+
 import {
   View,
   Text,
@@ -9,6 +10,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { auth } from '../firebase/config'; // ✅ Ensure this points to your config
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
@@ -25,7 +27,10 @@ export default function LoginScreen({ navigation }) {
   
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const token = await getIdToken(userCredential.user);// ✅ Token to send to backend
+
+      // const token = await getIdToken(userCredential.user);// ✅ Token to send to backend
+      const token = await userCredential.user.getIdToken();
+
   
       // You can store it with async storage if needed
       await AsyncStorage.setItem('token', token);
@@ -53,6 +58,9 @@ export default function LoginScreen({ navigation }) {
       }
 
 
+
+      
+  
   
       if (email === 'admin@gmail.com') {
         navigation.navigate('AdminDashboard', { email, token });

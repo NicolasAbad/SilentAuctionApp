@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const verifyToken = require('../middleware/verifyToken');
 
+
 router.get('/dashboard', verifyToken, (req, res) => {
   console.log('Dashboard route hit');
   res.status(200).json({
@@ -12,3 +13,5 @@ router.get('/dashboard', verifyToken, (req, res) => {
 });
 
 module.exports = router;
+
+

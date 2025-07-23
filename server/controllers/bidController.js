@@ -1,12 +1,15 @@
 const Bid = require('../models/Bid');
 const Item = require('../models/Item');
 
+
 // Place a bid on an item
+
 exports.placeBid = async (req, res) => {
   try {
     const { itemId, amount } = req.body;
-
     const item = await Item.findById(itemId);
+
+
     if (!item) return res.status(404).json({ message: 'Item not found' });
 
     if (amount <= item.currentBid) {
@@ -14,8 +17,8 @@ exports.placeBid = async (req, res) => {
     }
 
     const newBid = new Bid({
-      item: itemId, // updated key name from itemId → item
-      userId: req.user.uid,
+      item: itemId, // updated key name from itemId -> item
+      userId: req.user.uid, // Firebase UID
       amount
     });
 
@@ -30,6 +33,7 @@ exports.placeBid = async (req, res) => {
     res.status(500).json({ message: 'Failed to place bid' });
   }
 };
+
 
 // Get the bid history for a specific item
 exports.getBidHistory = async (req, res) => {

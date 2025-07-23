@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+
 const bidSchema = new mongoose.Schema({
   item: { type: mongoose.Schema.Types.ObjectId, ref: 'Item', required: true }, // renamed from itemId
   userId: { type: String, required: true }, // Firebase UID
@@ -8,3 +9,4 @@ const bidSchema = new mongoose.Schema({
 });
 
 module.exports = mongoose.model('Bid', bidSchema);
+

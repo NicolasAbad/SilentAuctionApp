@@ -9,7 +9,7 @@ const verifyToken = async (req, res, next) => {
   }
 
   const idToken = authHeader.split(' ')[1];
-  console.log('Token received on backend:', idToken);
+
 
   try {
     // Step 1: Verify Firebase ID token

@@ -12,7 +12,7 @@ import axios from 'axios';
 import { getAuth } from 'firebase/auth';
 import Constants from 'expo-constants';
 
-export default function AdminCreateAuction({ navigation }) {
+export default function AdminCreateAuction({ navigation, route }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [startingBid, setStartingBid] = useState('');
@@ -20,6 +20,8 @@ export default function AdminCreateAuction({ navigation }) {
   const [image, setImage] = useState(null);
   const [category, setCategory] = useState('');
   const API_URL = Constants.expoConfig.extra.API_URL;
+  const isAdmin = route?.params?.isAdmin || false;
+
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -130,7 +132,7 @@ export default function AdminCreateAuction({ navigation }) {
       </TouchableOpacity>
     </ScrollView>
 
-    <BottomNavBar navigation={navigation} />
+    <BottomNavBar navigation={navigation} isAdmin={isAdmin} />
   </SafeAreaView>
 );
 }

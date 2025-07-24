@@ -1,7 +1,10 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const cron = require('node-cron');
+const Item = require('./models/Item');
 require('dotenv').config(); // loading the environment variables
+
 
 // express initialization
 const app = express();
@@ -53,3 +56,16 @@ app.use((err, req, res, next) => {
 
 // start the server
 app.listen(PORT, () => console.log(`Server is running on PORT: ${PORT}`));
+
+cron.schedule('*/1 * * * *', async () => {
+  const now = new Date();
+  try {
+    await Item.updateMany(
+      { status: 'active', endTime: { $lte: now } },
+      { status: 'closed' }
+    );
+    console.log('[CRON] Closed expired auctions');
+  } catch (err) {
+    console.error('[CRON ERROR] Failed to close auctions:', err);
+  }
+});

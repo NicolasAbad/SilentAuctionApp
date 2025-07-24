@@ -23,4 +23,6 @@ router.get('/:itemId/details-with-bids', itemController.getItemWithBidHistory);
 // Delete item by Id (protected)
 router.delete('/:id', verifyToken, itemController.deleteItem);
 
+router.put('/close-expired', itemController.closeExpiredItems);
+
 module.exports = router;

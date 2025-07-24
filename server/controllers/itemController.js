@@ -94,3 +94,22 @@ exports.deleteItem = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+exports.closeExpiredItems = async (req, res) => {
+  try {
+    const now = new Date();
+    
+    const result = await Item.updateMany(
+      { status: 'active', endTime: { $lte: now } },
+      { status: 'closed' }
+    );
+
+    res.status(200).json({
+      message: 'Expired auctions closed',
+      modifiedCount: result.modifiedCount
+    });
+  } catch (err) {
+    console.error('Error closing expired auctions:', err);
+    res.status(500).json({ message: 'Failed to close expired auctions' });
+  }
+};

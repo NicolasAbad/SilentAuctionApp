@@ -17,10 +17,11 @@ import Constants from 'expo-constants';
 import BottomNavBar from './BottomNavBar';
 import TopBar from './TopBar';
 
-export default function MyBidsScreen({ navigation }) {
+export default function MyBidsScreen({ navigation, route }) {
   const [bids, setBids] = useState([]);
   const [loading, setLoading] = useState(true);
   const API_URL = Constants.expoConfig.extra.API_URL;
+  const isAdmin = route?.params?.isAdmin || false;
 
   const filterLatestBidsPerItem = (bids) => {
     const latestBidsMap = new Map();
@@ -146,7 +147,7 @@ export default function MyBidsScreen({ navigation }) {
         </View>
       </ScrollView>
 
-      <BottomNavBar navigation={navigation} />
+      <BottomNavBar navigation={navigation} isAdmin={isAdmin} />
     </SafeAreaView>
   );
 }

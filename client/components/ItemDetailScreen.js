@@ -1,4 +1,3 @@
-
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 import {
@@ -10,28 +9,33 @@ import {
   ScrollView,
   TextInput,
   Modal,
+  Alert,
 } from 'react-native';
 
 import TopBar from './TopBar';
 import BottomNavBar from './BottomNavBar';
+import Constants from 'expo-constants';
+import axios from 'axios';
+import { getAuth } from 'firebase/auth';
 
 export default function ItemDetailScreen({ route, navigation }) {
-
-
   const [timeLeft, setTimeLeft] = useState('');
   const [bidAmount, setBidAmount] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const { item } = route.params;
+  const [currentBid, setCurrentBid] = useState(item.currentBid || 0);
+   const API_URL = Constants.expoConfig.extra.API_URL;
 
   useEffect(() => {
     const interval = setInterval(() => {
       const now = Date.now();
-      const remaining = Math.max(0, Math.floor((item.endTime - now) / 1000));
+      const endTimeMs = new Date(item.endTime).getTime();
+      const remaining = Math.max(0, Math.floor((endTimeMs - now) / 1000));
       setTimeLeft(formatTime(remaining));
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [item.endTime]);
 
   const formatTime = (seconds) => {
     const h = Math.floor(seconds / 3600);
@@ -40,41 +44,92 @@ export default function ItemDetailScreen({ route, navigation }) {
     return `${h > 0 ? `${h}h ` : ''}${m}m ${s}s`;
   };
 
+  const placeBid = async () => {
+  try {
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (!user) {
+      Alert.alert('Not logged in', 'You must be logged in to place a bid.');
+      return;
+    }
+    const idToken = await user.getIdToken();
+
+    if (!bidAmount || isNaN(bidAmount)) {
+      Alert.alert('Invalid bid', 'Please enter a valid bid amount.');
+      return;
+    }
+
+    if (parseFloat(bidAmount) <= currentBid) {
+      Alert.alert('Bid too low', 'Your bid must be higher than the current bid.');
+      return;
+    }
+
+    if (!item?._id) {
+      Alert.alert('Error', 'Invalid item selected');
+      return;
+    }
+
+    console.log('Placing bid for item ID:', item._id, 'with amount:', bidAmount);
+
+    const response = await axios.post(
+      `${API_URL}/api/bids/${item._id}/bid`,
+      { amount: bidAmount },
+      { headers: { Authorization: `Bearer ${idToken}` } }
+    );
+
+   Alert.alert('Success', response.data.message || 'Bid placed successfully!', [
+  {
+    text: 'OK',
+    onPress: () => {
+      setModalVisible(false);
+      setBidAmount('');
+      navigation.navigate('Home'); // 👈 Navigate to home
+    }
+  }
+]);
+
+} catch (error) {
+  console.error(error);
+  Alert.alert(
+    'Error',
+    error.response?.data?.message || 'Failed to place bid. Please try again.'
+  );
+  setModalVisible(false);
+}
+};
+
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <View style={styles.container}>
-
-
         {/* Top Header */}
         <TopBar navigation={navigation} />
 
         {/* Main Body */}
         <ScrollView contentContainerStyle={styles.body}>
-      
-          <Image source={item.image} style={styles.image} />
+          <Image
+            source={{ uri: item.imageUrls?.[0] || 'https://via.placeholder.com/150' }}
+            style={styles.image}
+          />
 
-       
           <Text style={styles.title}>{item.title}</Text>
 
-        
           <Text style={styles.description}>
             {item.description ||
               'Classic 35mm film camera in excellent condition with a 50mm f/1.8 lens. Perfect for collectors or photography enthusiasts.'}
           </Text>
 
-         
           <View style={styles.infoRow}>
             <View>
               <Text style={styles.label}>Current bid</Text>
-              <Text style={styles.value}>{item.bid}</Text>
+              <Text style={styles.value}>${currentBid.toFixed(2)}</Text>
             </View>
             <View>
-                <Text style={styles.label}>Time left</Text>
-                <Text style={styles.value}>{timeLeft}</Text>
+              <Text style={styles.label}>Time left</Text>
+              <Text style={styles.value}>{timeLeft}</Text>
             </View>
           </View>
 
-        
           <Text style={styles.inputLabel}>Your Bid</Text>
           <TextInput
             style={styles.bidInput}
@@ -84,7 +139,6 @@ export default function ItemDetailScreen({ route, navigation }) {
             onChangeText={setBidAmount}
           />
 
-          
           <TouchableOpacity
             style={styles.bidButton}
             onPress={() => setModalVisible(true)}
@@ -96,7 +150,7 @@ export default function ItemDetailScreen({ route, navigation }) {
         {/* Bottom Navigation */}
         <BottomNavBar navigation={navigation} />
 
-     
+        {/* Confirm Bid Modal */}
         <Modal
           transparent={true}
           visible={modalVisible}
@@ -107,7 +161,7 @@ export default function ItemDetailScreen({ route, navigation }) {
             <View style={styles.modalContainer}>
               <Text style={styles.modalTitle}>Place bid?</Text>
               <Text style={styles.modalMessage}>
-                Are you sure you want to place this bid?
+                Are you sure you want to place this bid of ${parseFloat(bidAmount).toFixed(2)}?
               </Text>
 
               <View style={styles.modalButtons}>
@@ -120,12 +174,7 @@ export default function ItemDetailScreen({ route, navigation }) {
 
                 <TouchableOpacity
                   style={[styles.modalButton, styles.confirmButton]}
-                  onPress={() => {
-                    //TODO: Add Firebase or backend logic here
-                    setModalVisible(false);
-                    alert('Bid placed!');
-                    setBidAmount('');
-                  }}
+                  onPress={placeBid}
                 >
                   <Text style={styles.confirmText}>Place Bid</Text>
                 </TouchableOpacity>
@@ -149,9 +198,9 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    height: 180,
+    height: 220,
     borderRadius: 12,
-    resizeMode: 'contain',
+    resizeMode: 'cover',
     marginBottom: 20,
   },
   title: {

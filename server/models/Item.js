@@ -3,7 +3,10 @@ const mongoose = require("mongoose");
 const itemSchema = new mongoose.Schema({
     title: {type: String, required: true},
     description: {type: String, required: true},
-    imageUrls: [{type: String}],
+     imageData: {
+    data: Buffer,        // binary data for the image
+    contentType: String, // MIME type like 'image/jpeg'
+    },
     startingBid: {type: Number},
     currentBid: {type: Number},
     ownerId: {type: String,  required: true},

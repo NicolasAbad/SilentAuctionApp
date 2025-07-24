@@ -24,14 +24,16 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-
       "package": "com.anonymous.SilentApp",
-
       "permissions": ["CAMERA", "MEDIA_LIBRARY"],
       "edgeToEdgeEnabled": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+
+    "extra": {
+      "API_URL": "http://10.0.0.90:5000"
     }
   }
 }

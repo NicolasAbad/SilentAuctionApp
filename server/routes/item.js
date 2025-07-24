@@ -20,8 +20,7 @@ router.get('/:id', itemController.getItemById);
 
 router.get('/:itemId/details-with-bids', itemController.getItemWithBidHistory);
 
-// Delete item by Id (protected)
-router.delete('/:id', verifyToken, itemController.deleteItem);
+router.get('/:id', itemController.getItemById);
 
 router.put('/close-expired', itemController.closeExpiredItems);
 

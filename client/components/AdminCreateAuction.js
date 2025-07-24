@@ -17,20 +17,22 @@ export default function AdminCreateAuction({ navigation, route }) {
   const [description, setDescription] = useState('');
   const [startingBid, setStartingBid] = useState('');
   const [duration, setDuration] = useState('');
-  const [image, setImage] = useState(null);
+  const [imageUri, setImageUri] = useState(null);
+  const [imageBase64, setImageBase64] = useState(null);
   const [category, setCategory] = useState('');
   const API_URL = Constants.expoConfig.extra.API_URL;
   const isAdmin = route?.params?.isAdmin || false;
-
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 1,
+      base64: true,  // important to get base64 data
     });
 
     if (!result.canceled) {
-      setImage(result.assets[0].uri);
+      setImageUri(result.assets[0].uri);
+      setImageBase64(result.assets[0].base64);
     }
   };
 
@@ -44,7 +46,7 @@ export default function AdminCreateAuction({ navigation, route }) {
   };
 
   const handleSubmit = async () => {
-    if (!title || !startingBid || !duration || !image) {
+    if (!title || !startingBid || !duration || !imageBase64) {
       Alert.alert('Missing Fields', 'Please fill in all required fields.');
       return;
     }
@@ -56,9 +58,9 @@ export default function AdminCreateAuction({ navigation, route }) {
       const newItem = {
         title,
         description,
-        imageUrls: [image],
+        imageBase64,       // send base64 string here
         startingBid: parseFloat(startingBid),
-        category,  
+        category,
         endTime: parseDuration(duration),
       };
 
@@ -81,60 +83,60 @@ export default function AdminCreateAuction({ navigation, route }) {
   };
 
   return (
-  <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-    <TopBar navigation={navigation} />
-    
-    <ScrollView
-      contentContainerStyle={styles.scrollContainer}
-      keyboardShouldPersistTaps="handled"
-    >
-      <Text style={styles.title}>Create New Auction</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+      <TopBar navigation={navigation} />
+      
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={styles.title}>Create New Auction</Text>
 
-      {/* Image Picker */}
-      <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
-        {image ? (
-          <Image source={{ uri: image }} style={styles.image} />
-        ) : (
-          <Text style={styles.imagePlaceholder}>📸 Tap to upload image</Text>
-        )}
-      </TouchableOpacity>
+        {/* Image Picker */}
+        <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
+          {imageUri ? (
+            <Image source={{ uri: imageUri }} style={styles.image} />
+          ) : (
+            <Text style={styles.imagePlaceholder}>📸 Tap to upload image</Text>
+          )}
+        </TouchableOpacity>
 
-      {/* Inputs */}
-      <TextInput placeholder="Item Title" value={title} onChangeText={setTitle} style={styles.input} />
-      <TextInput placeholder="Description" value={description} onChangeText={setDescription} style={[styles.input, { height: 80 }]} multiline />
-      <TextInput placeholder="Starting Bid ($)" value={startingBid} onChangeText={setStartingBid} style={styles.input} keyboardType="numeric" />
-      <TextInput placeholder="Duration (e.g., 1h, 30m)" value={duration} onChangeText={setDuration} style={styles.input} />
+        {/* Inputs */}
+        <TextInput placeholder="Item Title" value={title} onChangeText={setTitle} style={styles.input} />
+        <TextInput placeholder="Description" value={description} onChangeText={setDescription} style={[styles.input, { height: 80 }]} multiline />
+        <TextInput placeholder="Starting Bid ($)" value={startingBid} onChangeText={setStartingBid} style={styles.input} keyboardType="numeric" />
+        <TextInput placeholder="Duration (e.g., 1h, 30m)" value={duration} onChangeText={setDuration} style={styles.input} />
 
-      {/* Category Picker */}
-      <Picker selectedValue={category} onValueChange={(value) => setCategory(value)} style={styles.input}>
-        <Picker.Item label="Select a category..." value="" />
-        <Picker.Item label="Electronics" value="electronics" />
-        <Picker.Item label="Fashion" value="fashion" />
-        <Picker.Item label="Home Decor" value="home_decor" />
-        <Picker.Item label="Books" value="books" />
-        <Picker.Item label="Sports & Outdoors" value="sports_outdoors" />
-        <Picker.Item label="Toys & Games" value="toys_games" />
-        <Picker.Item label="Collectibles" value="collectibles" />
-        <Picker.Item label="Automotive" value="automotive" />
-        <Picker.Item label="Health & Beauty" value="health_beauty" />
-        <Picker.Item label="Jewelry & Watches" value="jewelry_watches" />
-        <Picker.Item label="Music & Instruments" value="music_instruments" />
-        <Picker.Item label="Office Supplies" value="office_supplies" />
-        <Picker.Item label="Pet Supplies" value="pet_supplies" />
-        <Picker.Item label="Garden & Outdoor" value="garden_outdoor" />
-        <Picker.Item label="Industrial Equipment" value="industrial_equipment" />
-        <Picker.Item label="Food & Beverage" value="food_beverage" />
-      </Picker>
+        {/* Category Picker */}
+        <Picker selectedValue={category} onValueChange={(value) => setCategory(value)} style={styles.input}>
+          <Picker.Item label="Select a category..." value="" />
+          <Picker.Item label="Electronics" value="electronics" />
+          <Picker.Item label="Fashion" value="fashion" />
+          <Picker.Item label="Home Decor" value="home_decor" />
+          <Picker.Item label="Books" value="books" />
+          <Picker.Item label="Sports & Outdoors" value="sports_outdoors" />
+          <Picker.Item label="Toys & Games" value="toys_games" />
+          <Picker.Item label="Collectibles" value="collectibles" />
+          <Picker.Item label="Automotive" value="automotive" />
+          <Picker.Item label="Health & Beauty" value="health_beauty" />
+          <Picker.Item label="Jewelry & Watches" value="jewelry_watches" />
+          <Picker.Item label="Music & Instruments" value="music_instruments" />
+          <Picker.Item label="Office Supplies" value="office_supplies" />
+          <Picker.Item label="Pet Supplies" value="pet_supplies" />
+          <Picker.Item label="Garden & Outdoor" value="garden_outdoor" />
+          <Picker.Item label="Industrial Equipment" value="industrial_equipment" />
+          <Picker.Item label="Food & Beverage" value="food_beverage" />
+        </Picker>
 
-      {/* Submit Button */}
-      <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-        <Text style={styles.submitText}>Create Auction</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        {/* Submit Button */}
+        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+          <Text style={styles.submitText}>Create Auction</Text>
+        </TouchableOpacity>
+      </ScrollView>
 
-    <BottomNavBar navigation={navigation} isAdmin={isAdmin} />
-  </SafeAreaView>
-);
+      <BottomNavBar navigation={navigation} isAdmin={isAdmin} />
+    </SafeAreaView>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -184,7 +186,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   scrollContainer: {
-  padding: 20,
-  paddingBottom: 80, 
-}
+    padding: 20,
+    paddingBottom: 80, 
+  }
 });

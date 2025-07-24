@@ -8,18 +8,20 @@ export default function AuctionItemCard({ item, timeLeft, isAdmin, onDelete, onP
 
   return (
     <TouchableOpacity onPress={onPress} style={styles.card}>
-      <View style={styles.imageWrapper}>
-        {item.imageUrls && item.imageUrls.length > 0 ? (
-          <Image source={{ uri: item.imageUrls[0] }} style={styles.cardImage} resizeMode="cover" />
-        ) : (
-          <View style={styles.noImage}>
-            <Text style={styles.noImageText}>No Image</Text>
-          </View>
-        )}
-        <View style={[styles.statusBadge, isActive ? styles.activeBadge : styles.finishedBadge]}>
-          <Text style={styles.statusText}>{displayStatus}</Text>
+          <View style={styles.imageWrapper}>
+      {item.imageBase64 ? (
+        <Image source={{ uri: item.imageBase64 }} style={styles.cardImage} resizeMode="cover" />
+      ) : item.imageUrls && item.imageUrls.length > 0 ? (
+        <Image source={{ uri: item.imageUrls[0] }} style={styles.cardImage} resizeMode="cover" />
+      ) : (
+        <View style={styles.noImage}>
+          <Text style={styles.noImageText}>No Image</Text>
         </View>
+      )}
+      <View style={[styles.statusBadge, isActive ? styles.activeBadge : styles.finishedBadge]}>
+        <Text style={styles.statusText}>{displayStatus}</Text>
       </View>
+</View>
 
       <View style={styles.content}>
         <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>

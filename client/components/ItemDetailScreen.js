@@ -110,15 +110,15 @@ export default function ItemDetailScreen({ route, navigation }) {
 
         {/* Main Body */}
         <ScrollView contentContainerStyle={styles.body}>
-          <View style={{ position: 'relative' }}>
-            <Image
-              source={{ uri: item.imageUrls?.[0] || 'https://via.placeholder.com/150' }}
-              style={styles.image}
-            />
-            <View style={[styles.statusBadge, isActive ? styles.activeBadge : styles.finishedBadge]}>
-              <Text style={styles.statusText}>{displayStatus}</Text>
-            </View>
+        <View style={{ position: 'relative' }}>
+          <Image
+            source={{ uri: item.imageBase64 || item.imageUrls?.[0] || 'https://via.placeholder.com/150' }}
+            style={styles.image}
+          />
+          <View style={[styles.statusBadge, isActive ? styles.activeBadge : styles.finishedBadge]}>
+            <Text style={styles.statusText}>{displayStatus}</Text>
           </View>
+        </View>
 
           <Text style={styles.title}>{item.title}</Text>
 
@@ -140,11 +140,15 @@ export default function ItemDetailScreen({ route, navigation }) {
 
           <Text style={styles.inputLabel}>Your Bid</Text>
           <TextInput
-            style={styles.bidInput}
+            style={[
+              styles.bidInput,
+              !isActive && { backgroundColor: '#e0e0e0', color: '#888' } // Visual cue for disabled
+            ]}
             placeholder="Enter your bid amount"
             keyboardType="numeric"
             value={bidAmount}
             onChangeText={setBidAmount}
+            editable={isActive} // Disable input when auction is closed
           />
 
           <TouchableOpacity

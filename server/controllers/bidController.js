@@ -72,3 +72,16 @@ exports.getBidHistory = async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch bid history' });
   }
 };
+
+exports.getMyBids = async (req, res) => {
+  try {
+    const userId = req.user.uid; // from verifyToken middleware
+
+    const bids = await Bid.find({ userId }).populate('item');
+
+    res.json({ bids });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to fetch your bids' });
+  }
+};

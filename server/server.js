@@ -43,6 +43,8 @@ const protectedRoutes = require('./routes/protected');
 app.use('/api', protectedRoutes); // just for testing verifyToken
 
 
+
+
 // Global error handler middleware
 app.use((err, req, res, next) => {
     console.error(err);

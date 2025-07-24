@@ -1,8 +1,10 @@
-import BottomNavBar from './BottomNavBar.js'; 
+import BottomNavBar from './BottomNavBar.js';
 import TopBar from './TopBar';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import Constants from 'expo-constants';
+
+import { auth } from '../firebase/config';
 
 import {
   View,
@@ -12,31 +14,43 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
-  Alert
+  Alert,
 } from 'react-native';
 
 export default function HomeScreen({ navigation }) {
   const [items, setItems] = useState([]);
   const [timeLeftMap, setTimeLeftMap] = useState({});
+  const [isAdmin, setIsAdmin] = useState(false);
   const API_URL = Constants.expoConfig.extra.API_URL;
+  const ADMIN_EMAIL = Constants.expoConfig.extra.ADMIN_EMAIL?.toLowerCase();
 
-  // Time formatter for countdown timer
-  function formatTimeLeft(seconds) {
+  // Check if logged-in user is admin by comparing emails
+  useEffect(() => {
+    const user = auth.currentUser;
+   
+    if (user?.email && ADMIN_EMAIL) {
+      setIsAdmin(user.email.toLowerCase() === ADMIN_EMAIL);
+    } else {
+      setIsAdmin(false);
+    }
+  }, []);
+
+  // Format remaining time
+  const formatTimeLeft = (seconds) => {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     const s = seconds % 60;
     return `${h > 0 ? `${h}h ` : ''}${m}m ${s}s`;
-  }
+  };
 
-  // Calculate time left every second for each item
+  // Update countdown timers every second
   useEffect(() => {
-    if (items.length === 0) return; // nothing to update
+    if (items.length === 0) return;
 
     const interval = setInterval(() => {
       const now = Date.now();
       const updated = {};
       items.forEach(item => {
-        // endTime is expected to be ISO string or Date object
         const endTimeMs = new Date(item.endTime).getTime();
         const secondsLeft = Math.max(0, Math.floor((endTimeMs - now) / 1000));
         updated[item._id] = formatTimeLeft(secondsLeft);
@@ -47,70 +61,109 @@ export default function HomeScreen({ navigation }) {
     return () => clearInterval(interval);
   }, [items]);
 
-  // Fetch items from backend on mount
+  // Fetch auction items on mount
   useEffect(() => {
-    axios
-      .get(`${API_URL}/api/items`) // Your backend API endpoint
-      .then((res) => {
-        setItems(res.data);
-        
-      })
-      .catch((error) => {
-        console.error('Error fetching items:', error);
-        Alert.alert('Error', 'Failed to fetch items');
-      });
+    fetchItems();
   }, []);
 
-  // Render each item card
+  const fetchItems = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/items`);
+      setItems(response.data);
+    } catch (error) {
+      console.error('Error fetching items:', error);
+      Alert.alert('Error', 'Failed to fetch items');
+    }
+  };
+
+  const handleDelete = (itemId) => {
+    Alert.alert(
+      'Confirm Delete',
+      'Are you sure you want to delete this item?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => deleteItem(itemId) },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const deleteItem = async (itemId) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        Alert.alert('Not logged in', 'Please log in to delete items.');
+        return;
+      }
+
+      const idToken = await user.getIdToken();
+
+      await axios.delete(`${API_URL}/api/items/${itemId}`, {
+        headers: { Authorization: `Bearer ${idToken}` },
+        timeout: 10000,
+      });
+
+      setItems(prevItems => prevItems.filter(item => item._id !== itemId));
+      Alert.alert('Deleted', 'Item deleted successfully');
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      Alert.alert('Error', 'Failed to delete item');
+    }
+  };
+
   const renderItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => navigation.navigate('ItemDetail', { item })}
-    >
-      {/* Show first image or fallback */}
-      {item.imageUrls && item.imageUrls.length > 0 ? (
-        <Image
-          source={{ uri: item.imageUrls[0] }}
-          style={styles.cardImage}
-          resizeMode="cover"
-        />
-      ) : (
-        <View style={[styles.cardImage, {backgroundColor: '#ccc', justifyContent: 'center', alignItems: 'center'}]}>
-          <Text>No Image</Text>
-        </View>
+    <View style={styles.card}>
+      <TouchableOpacity
+        onPress={() => navigation.navigate('ItemDetail', { item })}
+        style={{ flex: 1 }}
+      >
+        {item.imageUrls && item.imageUrls.length > 0 ? (
+          <Image
+            source={{ uri: item.imageUrls[0] }}
+            style={styles.cardImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={[styles.cardImage, { backgroundColor: '#ccc', justifyContent: 'center', alignItems: 'center' }]}>
+            <Text>No Image</Text>
+          </View>
+        )}
+
+        <Text style={styles.cardTitle}>{item.title}</Text>
+        <Text style={styles.cardText}>{item.description}</Text>
+
+        <Text style={styles.cardText}>
+          Starting Bid: <Text style={styles.cardBold}>${item.startingBid || 0}</Text>
+        </Text>
+        <Text style={styles.cardText}>
+          Current Bid: <Text style={styles.cardBold}>${item.currentBid || 0}</Text>
+        </Text>
+        <Text style={styles.cardText}>
+          Category: <Text style={styles.cardBold}>{item.category || 'N/A'}</Text>
+        </Text>
+        <Text style={styles.cardText}>
+          Status: <Text style={styles.cardBold}>{item.status || 'N/A'}</Text>
+        </Text>
+        <Text style={styles.cardText}>
+          Time left: {timeLeftMap[item._id] || '--:--'}
+        </Text>
+      </TouchableOpacity>
+
+      {isAdmin && (
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => handleDelete(item._id)}
+        >
+          <Text style={styles.deleteButtonText}>Delete</Text>
+        </TouchableOpacity>
       )}
-
-      <Text style={styles.cardTitle}>{item.title}</Text>
-      <Text style={styles.cardText}>{item.description}</Text>
-
-      <Text style={styles.cardText}>
-        Starting Bid: <Text style={styles.cardBold}>${item.startingBid || 0}</Text>
-      </Text>
-
-      <Text style={styles.cardText}>
-        Current Bid: <Text style={styles.cardBold}>${item.currentBid || 0}</Text>
-      </Text>
-
-      <Text style={styles.cardText}>
-        Category: <Text style={styles.cardBold}>{item.category || 'N/A'}</Text>
-      </Text>
-
-      <Text style={styles.cardText}>
-        Status: <Text style={styles.cardBold}>{item.status || 'N/A'}</Text>
-      </Text>
-
-      <Text style={styles.cardText}>
-        Time left: {timeLeftMap[item._id] || '--:--'}
-      </Text>
-    </TouchableOpacity>
+    </View>
   );
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <TopBar navigation={navigation} />
 
-      {/* Search + Filter */}
       <View style={styles.searchRow}>
         <TextInput placeholder="Search" style={styles.searchInput} />
         <TouchableOpacity style={styles.filterButton}>
@@ -118,15 +171,15 @@ export default function HomeScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* Create Auction Button */}
-      <TouchableOpacity 
-        style={styles.testButton}
-        onPress={() => navigation.navigate('CreateAuction')}
-      >
-        <Text style={styles.testButtonText}>Go to create test page</Text>
-      </TouchableOpacity>
+      {isAdmin && (
+        <TouchableOpacity
+          style={styles.testButton}
+          onPress={() => navigation.navigate('CreateAuction')}
+        >
+          <Text style={styles.testButtonText}>Go to create test page</Text>
+        </TouchableOpacity>
+      )}
 
-      {/* FlatList */}
       <FlatList
         data={items}
         keyExtractor={(item) => item._id}
@@ -136,7 +189,6 @@ export default function HomeScreen({ navigation }) {
         renderItem={renderItem}
       />
 
-      {/* Bottom Nav */}
       <BottomNavBar navigation={navigation} />
     </View>
   );
@@ -209,5 +261,16 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  deleteButton: {
+    marginTop: 8,
+    backgroundColor: '#D32F2F',
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  deleteButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });

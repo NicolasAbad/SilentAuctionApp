@@ -8,7 +8,8 @@ const verifyToken = require('../middleware/verifyToken');
 
 router.post('/:itemId/bid', verifyToken, bidController.placeBid);
 
-
+// Get all bids placed by the authenticated user (protected)
+router.get('/mybids', verifyToken, bidController.getMyBids);
 
 //getting the history of the bid
 router.get('/:itemId', bidController.getBidHistory);

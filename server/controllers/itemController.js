@@ -75,3 +75,22 @@ exports.getItemWithBidHistory = async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch item with bids' });
   }
 };
+
+exports.deleteItem = async (req, res) => {
+  try {
+    const itemId = req.params.id;
+
+    // Optional: Check if user is authorized to delete this item (owner/admin)
+
+    const deletedItem = await Item.findByIdAndDelete(itemId);
+
+    if (!deletedItem) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+
+    res.status(200).json({ message: 'Item deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting item:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

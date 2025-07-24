@@ -20,6 +20,7 @@ router.get('/:id', itemController.getItemById);
 
 router.get('/:itemId/details-with-bids', itemController.getItemWithBidHistory);
 
-
+// Delete item by Id (protected)
+router.delete('/:id', verifyToken, itemController.deleteItem);
 
 module.exports = router;

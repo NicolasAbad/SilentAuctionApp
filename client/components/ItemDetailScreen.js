@@ -24,7 +24,7 @@ export default function ItemDetailScreen({ route, navigation }) {
   const [modalVisible, setModalVisible] = useState(false);
   const { item } = route.params;
   const [currentBid, setCurrentBid] = useState(item.currentBid || 0);
-   const API_URL = Constants.expoConfig.extra.API_URL;
+  const API_URL = Constants.expoConfig.extra.API_URL;
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -44,60 +44,63 @@ export default function ItemDetailScreen({ route, navigation }) {
     return `${h > 0 ? `${h}h ` : ''}${m}m ${s}s`;
   };
 
+  // Determine status badge info
+  const isTimeOver = !timeLeft || timeLeft === '00:00' || timeLeft === '00:00:00' || timeLeft.startsWith('-');
+  const displayStatus = isTimeOver ? 'Finished' : (item.status || 'N/A');
+  const isActive = displayStatus.toLowerCase() === 'active';
+
   const placeBid = async () => {
-  try {
-    const auth = getAuth();
-    const user = auth.currentUser;
-    if (!user) {
-      Alert.alert('Not logged in', 'You must be logged in to place a bid.');
-      return;
-    }
-    const idToken = await user.getIdToken();
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (!user) {
+        Alert.alert('Not logged in', 'You must be logged in to place a bid.');
+        return;
+      }
+      const idToken = await user.getIdToken();
 
-    if (!bidAmount || isNaN(bidAmount)) {
-      Alert.alert('Invalid bid', 'Please enter a valid bid amount.');
-      return;
-    }
+      if (!bidAmount || isNaN(bidAmount)) {
+        Alert.alert('Invalid bid', 'Please enter a valid bid amount.');
+        return;
+      }
 
-    if (parseFloat(bidAmount) <= currentBid) {
-      Alert.alert('Bid too low', 'Your bid must be higher than the current bid.');
-      return;
-    }
+      if (parseFloat(bidAmount) <= currentBid) {
+        Alert.alert('Bid too low', 'Your bid must be higher than the current bid.');
+        return;
+      }
 
-    if (!item?._id) {
-      Alert.alert('Error', 'Invalid item selected');
-      return;
-    }
+      if (!item?._id) {
+        Alert.alert('Error', 'Invalid item selected');
+        return;
+      }
 
-    console.log('Placing bid for item ID:', item._id, 'with amount:', bidAmount);
+      console.log('Placing bid for item ID:', item._id, 'with amount:', bidAmount);
 
-    const response = await axios.post(
-      `${API_URL}/api/bids/${item._id}/bid`,
-      { amount: bidAmount },
-      { headers: { Authorization: `Bearer ${idToken}` } }
-    );
+      const response = await axios.post(
+        `${API_URL}/api/bids/${item._id}/bid`,
+        { amount: bidAmount },
+        { headers: { Authorization: `Bearer ${idToken}` } }
+      );
 
-   Alert.alert('Success', response.data.message || 'Bid placed successfully!', [
-  {
-    text: 'OK',
-    onPress: () => {
+      Alert.alert('Success', response.data.message || 'Bid placed successfully!', [
+        {
+          text: 'OK',
+          onPress: () => {
+            setModalVisible(false);
+            setBidAmount('');
+            navigation.navigate('Home'); // 👈 Navigate to home
+          },
+        },
+      ]);
+    } catch (error) {
+      console.error(error);
+      Alert.alert(
+        'Error',
+        error.response?.data?.message || 'Failed to place bid. Please try again.'
+      );
       setModalVisible(false);
-      setBidAmount('');
-      navigation.navigate('Home'); // 👈 Navigate to home
     }
-  }
-]);
-
-} catch (error) {
-  console.error(error);
-  Alert.alert(
-    'Error',
-    error.response?.data?.message || 'Failed to place bid. Please try again.'
-  );
-  setModalVisible(false);
-}
-};
-
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
@@ -107,10 +110,15 @@ export default function ItemDetailScreen({ route, navigation }) {
 
         {/* Main Body */}
         <ScrollView contentContainerStyle={styles.body}>
+        <View style={{ position: 'relative' }}>
           <Image
-            source={{ uri: item.imageUrls?.[0] || 'https://via.placeholder.com/150' }}
+            source={{ uri: item.imageBase64 || item.imageUrls?.[0] || 'https://via.placeholder.com/150' }}
             style={styles.image}
           />
+          <View style={[styles.statusBadge, isActive ? styles.activeBadge : styles.finishedBadge]}>
+            <Text style={styles.statusText}>{displayStatus}</Text>
+          </View>
+        </View>
 
           <Text style={styles.title}>{item.title}</Text>
 
@@ -132,19 +140,28 @@ export default function ItemDetailScreen({ route, navigation }) {
 
           <Text style={styles.inputLabel}>Your Bid</Text>
           <TextInput
-            style={styles.bidInput}
+            style={[
+              styles.bidInput,
+              !isActive && { backgroundColor: '#e0e0e0', color: '#888' } // Visual cue for disabled
+            ]}
             placeholder="Enter your bid amount"
             keyboardType="numeric"
             value={bidAmount}
             onChangeText={setBidAmount}
+            editable={isActive} // Disable input when auction is closed
           />
 
           <TouchableOpacity
             style={styles.bidButton}
             onPress={() => setModalVisible(true)}
+            disabled={!isActive} // Disable if auction finished
           >
             <Text style={styles.bidText}>Place Bid</Text>
           </TouchableOpacity>
+
+          {!isActive && (
+            <Text style={styles.auctionClosedText}>This auction is finished. Bidding is closed.</Text>
+          )}
         </ScrollView>
 
         {/* Bottom Navigation */}
@@ -203,6 +220,28 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
     marginBottom: 20,
   },
+  statusBadge: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    elevation: 10,
+    zIndex: 10,
+  },
+  activeBadge: {
+    backgroundColor: '#4CAF50',
+  },
+  finishedBadge: {
+    backgroundColor: '#D32F2F',
+  },
+  statusText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 12,
+    textTransform: 'uppercase',
+  },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
@@ -256,6 +295,12 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  auctionClosedText: {
+    color: '#D32F2F',
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 12,
   },
   modalOverlay: {
     flex: 1,

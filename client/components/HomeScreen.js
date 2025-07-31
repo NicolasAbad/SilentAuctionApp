@@ -1,42 +1,51 @@
-import BottomNavBar from './BottomNavBar.js'; 
-import TopBar from './TopBar';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { View, FlatList, Alert, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import axios from 'axios';
 import Constants from 'expo-constants';
 
-import {
-  View,
-  Text,
-  TextInput,
-  Image,
-  FlatList,
-  TouchableOpacity,
-  StyleSheet,
-  Alert
-} from 'react-native';
+import { auth } from '../firebase/config';
+
+import TopBar from './TopBar';
+import BottomNavBar from './BottomNavBar';
+
+import SearchFilterBar from './SearchFilterBar';
+import SortModal from './SortModal';
+import AuctionItemCard from './AuctionItemCard';
 
 export default function HomeScreen({ navigation }) {
   const [items, setItems] = useState([]);
+  const [filteredItems, setFilteredItems] = useState([]);
   const [timeLeftMap, setTimeLeftMap] = useState({});
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedSort, setSelectedSort] = useState('');
+  const [sortVisible, setSortVisible] = useState(false);
+
   const API_URL = Constants.expoConfig.extra.API_URL;
+  const ADMIN_EMAIL = Constants.expoConfig.extra.ADMIN_EMAIL?.toLowerCase();
 
-  // Time formatter for countdown timer
-  function formatTimeLeft(seconds) {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    return `${h > 0 ? `${h}h ` : ''}${m}m ${s}s`;
-  }
-
-  // Calculate time left every second for each item
   useEffect(() => {
-    if (items.length === 0) return; // nothing to update
+    const user = auth.currentUser;
+    if (user?.email && ADMIN_EMAIL) {
+      setIsAdmin(user.email.toLowerCase() === ADMIN_EMAIL);
+    } else {
+      setIsAdmin(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchItems();
+  }, []);
+
+  useEffect(() => {
+    if (filteredItems.length === 0) return;
 
     const interval = setInterval(() => {
       const now = Date.now();
       const updated = {};
-      items.forEach(item => {
-        // endTime is expected to be ISO string or Date object
+      filteredItems.forEach(item => {
         const endTimeMs = new Date(item.endTime).getTime();
         const secondsLeft = Math.max(0, Math.floor((endTimeMs - now) / 1000));
         updated[item._id] = formatTimeLeft(secondsLeft);
@@ -45,167 +54,141 @@ export default function HomeScreen({ navigation }) {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [items]);
+  }, [filteredItems]);
 
-  // Fetch items from backend on mount
   useEffect(() => {
-    axios
-      .get(`${API_URL}/api/items`) // Your backend API endpoint
-      .then((res) => {
-        setItems(res.data);
-        
-      })
-      .catch((error) => {
-        console.error('Error fetching items:', error);
-        Alert.alert('Error', 'Failed to fetch items');
+    applyFiltersAndSort();
+  }, [items, searchQuery, selectedCategory, selectedSort]);
+
+  const fetchItems = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/items`);
+      setItems(response.data);
+    } catch (error) {
+      console.error('Error fetching items:', error);
+      Alert.alert('Error', 'Failed to fetch items');
+    }
+  };
+
+  const applyFiltersAndSort = () => {
+    let filtered = [...items];
+
+    if (selectedCategory !== '') {
+      filtered = filtered.filter(item => item.category === selectedCategory);
+    }
+
+    if (searchQuery.trim() !== '') {
+      filtered = filtered.filter(item =>
+        item.title.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    if (selectedSort === 'priceAsc') {
+      filtered.sort((a, b) => a.startingBid - b.startingBid);
+    } else if (selectedSort === 'priceDesc') {
+      filtered.sort((a, b) => b.startingBid - a.startingBid);
+    } else if (selectedSort === 'timeLeft') {
+      filtered.sort((a, b) => new Date(a.endTime) - new Date(b.endTime));
+    } else if (selectedSort === 'latestFirst') {
+      filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+
+    setFilteredItems(filtered);
+  };
+
+  const formatTimeLeft = (seconds) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${h > 0 ? `${h}h ` : ''}${m}m ${s}s`;
+  };
+
+  const handleDelete = (itemId) => {
+    Alert.alert(
+      'Confirm Delete',
+      'Are you sure you want to delete this item?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => deleteItem(itemId) },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const deleteItem = async (itemId) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        Alert.alert('Not logged in', 'Please log in to delete items.');
+        return;
+      }
+
+      const idToken = await user.getIdToken();
+
+      await axios.delete(`${API_URL}/api/items/${itemId}`, {
+        headers: { Authorization: `Bearer ${idToken}` },
+        timeout: 10000,
       });
-  }, []);
 
-  // Render each item card
-  const renderItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => navigation.navigate('ItemDetail', { item })}
-    >
-      {/* Show first image or fallback */}
-      {item.imageUrls && item.imageUrls.length > 0 ? (
-        <Image
-          source={{ uri: item.imageUrls[0] }}
-          style={styles.cardImage}
-          resizeMode="cover"
-        />
-      ) : (
-        <View style={[styles.cardImage, {backgroundColor: '#ccc', justifyContent: 'center', alignItems: 'center'}]}>
-          <Text>No Image</Text>
-        </View>
-      )}
-
-      <Text style={styles.cardTitle}>{item.title}</Text>
-      <Text style={styles.cardText}>{item.description}</Text>
-
-      <Text style={styles.cardText}>
-        Starting Bid: <Text style={styles.cardBold}>${item.startingBid || 0}</Text>
-      </Text>
-
-      <Text style={styles.cardText}>
-        Current Bid: <Text style={styles.cardBold}>${item.currentBid || 0}</Text>
-      </Text>
-
-      <Text style={styles.cardText}>
-        Category: <Text style={styles.cardBold}>{item.category || 'N/A'}</Text>
-      </Text>
-
-      <Text style={styles.cardText}>
-        Status: <Text style={styles.cardBold}>{item.status || 'N/A'}</Text>
-      </Text>
-
-      <Text style={styles.cardText}>
-        Time left: {timeLeftMap[item._id] || '--:--'}
-      </Text>
-    </TouchableOpacity>
-  );
+      setItems(prevItems => prevItems.filter(item => item._id !== itemId));
+      Alert.alert('Deleted', 'Item deleted successfully');
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      Alert.alert('Error', 'Failed to delete item');
+    }
+  };
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <TopBar navigation={navigation} />
 
-      {/* Search + Filter */}
-      <View style={styles.searchRow}>
-        <TextInput placeholder="Search" style={styles.searchInput} />
-        <TouchableOpacity style={styles.filterButton}>
-          <Text style={styles.filterText}>Filter</Text>
-        </TouchableOpacity>
-      </View>
+      <SearchFilterBar
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        selectedCategory={selectedCategory}
+        setSelectedCategory={setSelectedCategory}
+        onSortPress={() => setSortVisible(true)}
+      />
 
-      {/* Create Auction Button */}
-      <TouchableOpacity 
-        style={styles.testButton}
-        onPress={() => navigation.navigate('CreateAuction')}
-      >
-        <Text style={styles.testButtonText}>Go to create test page</Text>
-      </TouchableOpacity>
+      <SortModal
+        visible={sortVisible}
+        onClose={() => setSortVisible(false)}
+        selectedSort={selectedSort}
+        onSelectSort={setSelectedSort}
+      />
 
-      {/* FlatList */}
       <FlatList
-        data={items}
+        data={filteredItems}
         keyExtractor={(item) => item._id}
         numColumns={2}
         columnWrapperStyle={{ justifyContent: 'space-between' }}
         contentContainerStyle={{ paddingBottom: 100 }}
-        renderItem={renderItem}
+        renderItem={({ item }) => (
+          <AuctionItemCard
+            item={item}
+            timeLeft={timeLeftMap[item._id]}
+            isAdmin={isAdmin}
+            onDelete={handleDelete}
+            onPress={() => navigation.navigate('ItemDetail', { item })}
+          />
+        )}
       />
 
-      {/* Bottom Nav */}
-      <BottomNavBar navigation={navigation} />
+      <BottomNavBar navigation={navigation} isAdmin={isAdmin} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', paddingHorizontal: 20, paddingTop: 50 },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  searchInput: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-    padding: 12,
-    borderRadius: 12,
-  },
-  filterButton: {
-    backgroundColor: '#F4511E',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginLeft: 10,
-  },
-  filterText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  card: {
-    backgroundColor: '#fff',
-    width: '47%',
-    marginTop: 20,
-    borderRadius: 10,
-    padding: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
-  },
-  cardImage: {
-    width: '100%',
-    height: 120,
-    borderRadius: 10,
-    marginBottom: 8,
-    backgroundColor: '#eee',
-  },
-  cardTitle: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginBottom: 4,
-  },
-  cardText: {
-    fontSize: 13,
-    color: '#444',
-    marginBottom: 2,
-  },
-  cardBold: {
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  testButton: {
+  adminButton: {
     backgroundColor: '#1E88E5',
     padding: 12,
     borderRadius: 10,
     marginTop: 20,
     alignItems: 'center',
   },
-  testButtonText: {
+  adminButtonText: {
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,

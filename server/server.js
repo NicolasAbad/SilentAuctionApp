@@ -1,10 +1,18 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const cron = require('node-cron');
+const Item = require('./models/Item');
 require('dotenv').config(); // loading the environment variables
 
 // express initialization
 const app = express();
+
+const bodyParser = require('body-parser');
+
+app.use(bodyParser.json({ limit: '5mb' }));
+app.use(bodyParser.urlencoded({ limit: '5mb', extended: true }));
+
 
 // middleware setup for backend - frontend communication
 app.use(cors());
@@ -42,6 +50,9 @@ app.use('/api/bids/', bidRoutes);
 const protectedRoutes = require('./routes/protected');
 app.use('/api', protectedRoutes); // just for testing verifyToken
 
+app.use(express.json({ limit: '40mb' }));  
+app.use(express.urlencoded({ limit: '5mb', extended: true }));
+
 
 // Global error handler middleware
 app.use((err, req, res, next) => {
@@ -51,3 +62,16 @@ app.use((err, req, res, next) => {
 
 // start the server
 app.listen(PORT, () => console.log(`Server is running on PORT: ${PORT}`));
+
+cron.schedule('*/1 * * * *', async () => {
+  const now = new Date();
+  try {
+    await Item.updateMany(
+      { status: 'active', endTime: { $lte: now } },
+      { status: 'closed' }
+    );
+    console.log('[CRON] Closed expired auctions');
+  } catch (err) {
+    console.error('[CRON ERROR] Failed to close auctions:', err);
+  }
+});

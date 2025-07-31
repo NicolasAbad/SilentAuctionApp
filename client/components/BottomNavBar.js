@@ -1,18 +1,26 @@
-
+import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
-export default function BottomNavBar({ navigation }) {
+export default function BottomNavBar({ navigation, isAdmin = false }) {
   return (
     <View style={styles.navbar}>
-      <TouchableOpacity onPress={() => navigation.navigate('Home')}>
+      <TouchableOpacity onPress={() => navigation.navigate('Home', { isAdmin })}>
         <Text style={styles.navItem}>🏠 Home</Text>
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => navigation.navigate('MyBids')}>
+
+      <TouchableOpacity onPress={() => navigation.navigate('MyBids', { isAdmin })}>
         <Text style={styles.navItem}>🔨 My Bids</Text>
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => navigation.navigate('Account')}>
-        <Text style={styles.navItem}>👤 Account</Text>
-      </TouchableOpacity>
+
+      {isAdmin ? (
+        <TouchableOpacity onPress={() => navigation.navigate('CreateAuction', { isAdmin })}>
+          <Text style={styles.navItem}>➕ Create Auction</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity onPress={() => navigation.navigate('Account', { isAdmin })}>
+          <Text style={styles.navItem}>👤 Account</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }

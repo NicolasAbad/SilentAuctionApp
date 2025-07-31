@@ -32,12 +32,10 @@ export default function LoginScreen({ navigation }) {
   
       // You can store it with async storage if needed
       // await AsyncStorage.setItem('token', token);
-  
-      if (email === 'admin@gmail.com') {
-        navigation.navigate('AdminDashboard', { email, token });
-      } else {
+       
+      
         navigation.navigate('Home', { email, token });
-      }
+      
   
     } catch (error) {
       console.error('Login error:', error.message);
@@ -45,6 +43,7 @@ export default function LoginScreen({ navigation }) {
     }
   };
  
+  
 
   return (
     <View style={styles.container}>

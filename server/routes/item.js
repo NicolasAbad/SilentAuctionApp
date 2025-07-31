@@ -20,6 +20,8 @@ router.get('/:id', itemController.getItemById);
 
 router.get('/:itemId/details-with-bids', itemController.getItemWithBidHistory);
 
+router.get('/:id', itemController.getItemById);
 
+router.put('/close-expired', itemController.closeExpiredItems);
 
 module.exports = router;

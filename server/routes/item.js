@@ -1,27 +1,23 @@
 const express = require('express');
 const router = express.Router();
 
-const itemController  = require('../controllers/itemController');
+const itemController = require('../controllers/itemController');
 const verifyToken = require('../middleware/verifyToken');
 
+// Most specific routes first
+router.get('/:itemId/details-with-bids', itemController.getItemWithBidHistory);
+router.put('/close-expired', itemController.closeExpiredItems);
 
-//let's create an item (protected)
-
-
+// Create an item (protected)
 router.post('/', verifyToken, itemController.createItem);
 
-
-//getting all Items (public)
+// Get all items (public)
 router.get('/', itemController.getAllItems);
 
-//getting specific item by Id (public)
+// Get specific item by ID (public)
 router.get('/:id', itemController.getItemById);
 
-
-router.get('/:itemId/details-with-bids', itemController.getItemWithBidHistory);
-
-router.get('/:id', itemController.getItemById);
-
-router.put('/close-expired', itemController.closeExpiredItems);
+// Delete item by ID (protected)
+router.delete('/:id', verifyToken, itemController.deleteItem);
 
 module.exports = router;

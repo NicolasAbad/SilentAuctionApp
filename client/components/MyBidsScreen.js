@@ -10,7 +10,7 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context'; // add this import
+import { SafeAreaView } from 'react-native-safe-area-context';
 import axios from 'axios';
 import { getAuth } from 'firebase/auth';
 import Constants from 'expo-constants';
@@ -25,26 +25,13 @@ export default function MyBidsScreen({ navigation, route }) {
 
   const filterLatestBidsPerItem = (bids) => {
     const latestBidsMap = new Map();
-
     bids.forEach((bid) => {
       const itemId = bid.item._id || bid.item;
       const existing = latestBidsMap.get(itemId);
-
-      if (!existing) {
+      if (!existing || new Date(bid.createdAt) > new Date(existing.createdAt)) {
         latestBidsMap.set(itemId, bid);
-      } else {
-        if (bid.createdAt && existing.createdAt) {
-          if (new Date(bid.createdAt) > new Date(existing.createdAt)) {
-            latestBidsMap.set(itemId, bid);
-          }
-        } else {
-          if (bid._id > existing._id) {
-            latestBidsMap.set(itemId, bid);
-          }
-        }
       }
     });
-
     return Array.from(latestBidsMap.values());
   };
 
@@ -58,8 +45,8 @@ export default function MyBidsScreen({ navigation, route }) {
           navigation.navigate('Account');
           return;
         }
-        const idToken = await user.getIdToken();
 
+        const idToken = await user.getIdToken();
         const response = await axios.get(`${API_URL}/api/bids/mybids`, {
           headers: { Authorization: `Bearer ${idToken}` },
         });
@@ -86,28 +73,33 @@ export default function MyBidsScreen({ navigation, route }) {
     );
   }
 
-  const bidsWhereCurrent = bids.filter(
-    (bid) => bid.amount === bid.item.currentBid
-  );
-  const bidsWhereNotCurrent = bids.filter(
-    (bid) => bid.amount !== bid.item.currentBid
-  );
+  const bidsWhereCurrent = bids.filter((bid) => bid.amount === bid.item.currentBid);
+  const bidsWhereNotCurrent = bids.filter((bid) => bid.amount !== bid.item.currentBid);
+
+  const getImageSource = (item) => {
+    if (!item) return 'https://via.placeholder.com/150';
+    if (item.imageBase64) return { uri: `data:image/jpeg;base64,${item.imageBase64}` };
+    if (item.imageUrls?.length) return { uri: item.imageUrls[0] };
+    return { uri: 'https://via.placeholder.com/150' };
+  };
 
   const renderItem = ({ item }) => {
     const bidItem = item.item;
+    if (!bidItem) return null;
+
     return (
       <TouchableOpacity
         style={styles.bidCard}
         onPress={() => navigation.navigate('ItemDetail', { item: bidItem })}
       >
         <Image
-            source={{ uri: item.imageBase64 || item.imageUrls?.[0] || 'https://via.placeholder.com/150' }}
-            style={styles.image}
-          />
+          source={getImageSource(bidItem)}
+          style={styles.image}
+        />
         <View style={styles.bidInfo}>
           <Text style={styles.itemTitle}>{bidItem.title}</Text>
-          <Text>Your bid: ${item.amount.toFixed(2)}</Text>
-          <Text>Current bid: ${bidItem.currentBid.toFixed(2)}</Text>
+          <Text>Your bid: ${item.amount?.toFixed(2) || '0.00'}</Text>
+          <Text>Current bid: ${bidItem.currentBid?.toFixed(2) || '0.00'}</Text>
           <Text>Ends: {new Date(bidItem.endTime).toLocaleString()}</Text>
         </View>
       </TouchableOpacity>

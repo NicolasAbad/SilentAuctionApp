@@ -101,9 +101,9 @@ export default function MyBidsScreen({ navigation, route }) {
         onPress={() => navigation.navigate('ItemDetail', { item: bidItem })}
       >
         <Image
-          source={{ uri: bidItem.imageUrls?.[0] || 'https://via.placeholder.com/100' }}
-          style={styles.image}
-        />
+            source={{ uri: item.imageBase64 || item.imageUrls?.[0] || 'https://via.placeholder.com/150' }}
+            style={styles.image}
+          />
         <View style={styles.bidInfo}>
           <Text style={styles.itemTitle}>{bidItem.title}</Text>
           <Text>Your bid: ${item.amount.toFixed(2)}</Text>

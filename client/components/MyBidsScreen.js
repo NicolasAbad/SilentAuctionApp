@@ -23,16 +23,59 @@ export default function MyBidsScreen({ navigation, route }) {
   const API_URL = Constants.expoConfig.extra.API_URL;
   const isAdmin = route?.params?.isAdmin || false;
 
+  // Filters bids so only latest bid per item remains
   const filterLatestBidsPerItem = (bids) => {
     const latestBidsMap = new Map();
+
     bids.forEach((bid) => {
+      if (!bid.item) return;
+
       const itemId = bid.item._id || bid.item;
       const existing = latestBidsMap.get(itemId);
+
       if (!existing || new Date(bid.createdAt) > new Date(existing.createdAt)) {
         latestBidsMap.set(itemId, bid);
       }
     });
+
     return Array.from(latestBidsMap.values());
+  };
+
+  // Fetch full item details for each bid item
+  const fetchFullItems = async (bids) => {
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (!user) {
+        Alert.alert('Not logged in', 'Please log in to view your bids.');
+        navigation.navigate('Account');
+        return [];
+      }
+      const idToken = await user.getIdToken();
+
+      // Map to promises of fetching item details
+      const detailedBidsPromises = bids.map(async (bid) => {
+        if (!bid.item?._id) return bid; // no item id, return original bid
+
+        try {
+          const res = await axios.get(`${API_URL}/api/items/${bid.item._id}`, {
+            headers: { Authorization: `Bearer ${idToken}` },
+          });
+          return {
+            ...bid,
+            item: res.data, // full item details including imageBase64
+          };
+        } catch (e) {
+          console.warn(`Failed to fetch item ${bid.item._id}:`, e.message);
+          return bid; // fallback to original bid
+        }
+      });
+
+      return await Promise.all(detailedBidsPromises);
+    } catch (e) {
+      console.error('Error fetching full item details:', e);
+      return bids; // fallback original bids
+    }
   };
 
   useEffect(() => {
@@ -53,7 +96,10 @@ export default function MyBidsScreen({ navigation, route }) {
 
         let allBids = Array.isArray(response.data) ? response.data : response.data.bids || [];
         const filteredBids = filterLatestBidsPerItem(allBids);
-        setBids(filteredBids);
+
+        // Fetch full item details for each bid's item
+        const bidsWithFullItems = await fetchFullItems(filteredBids);
+        setBids(bidsWithFullItems);
       } catch (error) {
         console.error('Error fetching bids:', error);
         Alert.alert('Error', 'Could not load your bids.');
@@ -73,19 +119,27 @@ export default function MyBidsScreen({ navigation, route }) {
     );
   }
 
-  const bidsWhereCurrent = bids.filter((bid) => bid.amount === bid.item.currentBid);
-  const bidsWhereNotCurrent = bids.filter((bid) => bid.amount !== bid.item.currentBid);
-
-  const getImageSource = (item) => {
-    if (!item) return 'https://via.placeholder.com/150';
-    if (item.imageBase64) return { uri: `data:image/jpeg;base64,${item.imageBase64}` };
-    if (item.imageUrls?.length) return { uri: item.imageUrls[0] };
-    return { uri: 'https://via.placeholder.com/150' };
-  };
+  const bidsWhereCurrent = bids.filter(
+    (bid) => bid.item && bid.amount === bid.item.currentBid
+  );
+  const bidsWhereNotCurrent = bids.filter(
+    (bid) => bid.item && bid.amount !== bid.item.currentBid
+  );
 
   const renderItem = ({ item }) => {
     const bidItem = item.item;
     if (!bidItem) return null;
+
+    let imageUri = 'https://via.placeholder.com/150';
+    if (typeof bidItem.imageBase64 === 'string' && bidItem.imageBase64.trim() !== '') {
+      if (!bidItem.imageBase64.startsWith('data:image')) {
+        imageUri = `data:image/jpeg;base64,${bidItem.imageBase64}`;
+      } else {
+        imageUri = bidItem.imageBase64;
+      }
+    } else if (Array.isArray(bidItem.imageUrls) && bidItem.imageUrls.length > 0) {
+      imageUri = bidItem.imageUrls[0];
+    }
 
     return (
       <TouchableOpacity
@@ -93,8 +147,10 @@ export default function MyBidsScreen({ navigation, route }) {
         onPress={() => navigation.navigate('ItemDetail', { item: bidItem })}
       >
         <Image
-          source={getImageSource(bidItem)}
+          source={{ uri: imageUri }}
           style={styles.image}
+          resizeMode="cover"
+          onError={(e) => console.log('Image load error:', e.nativeEvent.error)}
         />
         <View style={styles.bidInfo}>
           <Text style={styles.itemTitle}>{bidItem.title}</Text>
@@ -138,7 +194,6 @@ export default function MyBidsScreen({ navigation, route }) {
           )}
         </View>
       </ScrollView>
-
       <BottomNavBar navigation={navigation} isAdmin={isAdmin} />
     </SafeAreaView>
   );
